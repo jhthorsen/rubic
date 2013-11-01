@@ -35,6 +35,8 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Sys::Hostname;
 use Ubic;
 
+our $VERSION = '0.01';
+
 =head1 ACTIONS
 
 =head2 services
