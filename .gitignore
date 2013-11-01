@@ -11,4 +11,5 @@
 *.swp
 ~$
 /t/ubic/*
+/t/ubic-remote-admin.log
 /Mojolicious-Plugin-Ubic*tar.gz

@@ -6,16 +6,25 @@ BEGIN { unshift @INC, "$FindBin::Bin/../lib" if -d "lib" }
 
 my $secret = Mojo::Util::md5_sum($$. rand 1_000_000);
 my $path = $ENV{UBIC_BASE_PATH} || "/$secret";
+my $config;
+
+if($ENV{MOJO_CONFIG}) {
+  plugin 'Config';
+  $config = app->config->{ubic};
+}
+
+$config->{route} ||= app->routes->route($config->{path} || $path);
+$config->{json} ||= { hostname => Sys::Hostname::hostname, perl => $^X };
+
+plugin Ubic => $config;
+
+if(my $log = app->config->{log}) {
+  app->log->level($log->{level});
+  app->log->path($log->{file});
+  delete app->log->{handle}; # make sure we rebuild handle
+}
 
 app->log->info("Base path: $path");
 app->secret($secret); # not really required
-
-plugin Ubic => {
-  route => app->routes->route($path),
-  json => {
-    hostname => Sys::Hostname::hostname,
-    perl => $^X,
-  },
-};
 
 app->start;
