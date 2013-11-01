@@ -34,10 +34,51 @@ This is L<Ubic::Ping::Service> on steroids.
 use Mojo::Base 'Mojolicious::Plugin';
 use Sys::Hostname;
 use Ubic;
+use Ubic::Settings;
+use constant DEBUG => $ENV{UBIC_DEBUG} || 0;
 
 our $VERSION = '0.03';
 
 =head1 ACTIONS
+
+=head2 index
+
+Draw a tree using HTML.
+
+=cut
+
+sub index {
+  my($self, $c) = @_;
+  my $ua = $c->ua || Mojo::UserAgent->new;
+
+  $c->stash(layout => $self->{layout})->render_later;
+
+  Mojo::IOLoop->delay(
+    sub {
+      my($delay) = @_;
+      for my $url ($self->_remote_servers($c)) {
+        warn "[UBIC] remote_url=$url\n" if DEBUG;
+        $ua->get($url, $delay->begin);
+      }
+    },
+    sub {
+      my($delay, @tx) = @_;
+      my @remotes;
+
+      for my $tx (@tx) {
+        if(my $json = $tx->res->json) {
+          $json->{tx} = $tx;
+          push @remotes, $json;
+        }
+        else {
+          push @remotes, { tx => $tx, error => $tx->res->code || 'Did not respond' };
+        }
+      }
+
+      $c->render(template => 'ubic/index', remotes => \@remotes);
+    },
+  );
+}
 
 =head2 services
 
@@ -146,21 +187,37 @@ sub register {
   my($self, $app, $config) = @_;
   my $r = $config->{route} or die "'route' is required in config";
 
+  Ubic::Settings->service_dir($config->{service_dir}) if $config->{service_dir};
+  Ubic::Settings->data_dir($config->{data_dir}) if $config->{data_dir};
+  Ubic::Settings->default_user($config->{default_user}) if $config->{default_user};
+  Ubic::Settings->check_settings;
+
   $self->{json} = $config->{json} || {};
+  $self->{layout} = $config->{layout} || 'ubic';
+  $self->{remote_servers} = $config->{remote_servers} || [];
   $self->{valid_actions} = $config->{valid_actions} || [qw( start stop reload restart status )];
 
-  $r->get('/services/*name', { name => '' })
-    ->name('ubic_services')
-    ->to(cb => sub { $self->services(@_) })
-    ;
+  $r->get('/')->name('ubic_index')->to(cb => sub { $self->index(@_) });
+  $r->get('/services/*name', { name => '' })->name('ubic_services')->to(cb => sub { $self->services(@_) });
+  $r->get('/service/#name/:command', { command => 'status' })->name('ubic_service')->to(cb => sub { $self->service(@_) }); 
 
-  $r->get('/service/#name/:command', { command => 'status' })
-    ->name('ubic_service')
-    ->to(cb => sub { $self->service(@_) });
+  push @{ $app->renderer->classes }, __PACKAGE__;
 }
 
 sub _json {
   return { %{ shift->{json} } };
+}
+
+sub _remote_servers {
+  my($self, $c) = @_;
+  my $servers = $self->{remote_servers};
+
+  if(!$self->{init_remote_servers}++) {
+    push @$servers, $c->req->url->to_abs->clone;
+    push @{ $servers->[-1]->path }, 'services';
+  }
+
+  return @$servers;
 }
 
 sub _traverse {
@@ -187,3 +244,82 @@ Jan Henning Thorsen - C<jhthorsen@cpan.org>
 =cut
 
 1;
+
+__DATA__
+@@ layouts/ubic.html.ep
+<!DOCTYPE html>
+<head>
+  <title><%= title %></title>
+  <style>
+    body { background: #fefefe; color: #1c2e40; margin: 0; padding: 30px 20px; font-size: 14px; font-family: sans-serif; }
+    a { color: #1c2e40; text-decoration: none; }
+    a.refresh { display: block; position: absolute; top: 0; padding: 4px 8px; background: #eee; border: 1px solid #aaa; border-top: 0; }
+    h1 { display: none; }
+    h3 { margin: 10px 0; }
+    ul, ol { margin: 0; padding: 0; }
+    ol { margin-left: 5px; }
+    li { list-style: none; margin: 1px 0; }
+    li span { padding: 3px; display: block; float: left; }
+    li.multi-service > span { margin-left: -5px; float: none; background: #eee; border: 1px solid #ccc; }
+    li.service { clear: left; overflow: hidden; }
+    li.service.running { background: #2ecc71; }
+    li.service span.name { width: 180px; }
+    li.service span.status { padding-left: 8px; border-left: 1px solid #fefefe; }
+    li span.actions { padding: 0; }
+    li span.actions a { display: block; float: left; border-left: 1px solid #fefefe; padding: 3px 8px; }
+    li a.is { color: #666; }
+    li.running a.is { color: #0eac51; }
+  </style>
+  %= javascript '/mojo/jquery/jquery.js'; # bad idea
+  <script>
+  $(document).ready(function() {
+    $('li.service .actions a').click(function(e) {
+      $.get(this.href, function(data) { location.reload(); });
+      return false;
+    });
+  });
+  </script>
+</head>
+<html>
+%= content
+</html>
+@@ ubic/services.html.ep
+<ol>
+% for my $name (sort keys %$services) {
+  % my $data = $services->{$name};
+  % my $fqn = join '.', @$pre, $name;
+  % my $status = $data->{status} || 'unknown';
+  <li class="<%= $data->{services} ? 'multi-service' : 'service' %><%= $status =~ /^running/ ? ' running' : '' %>">
+  % if($data->{services}) {
+    <span class="multi-service"><%= $name %></span>
+    %= include 'ubic/services' => %$data, pre => [@$pre, $name]
+  % } else {
+    <span class="name"><%= $name %></span>
+    <span class="actions">
+      %= link_to 'Start', ubic_service => { name => $fqn, command => 'start' }, class => $status =~ /^running/i ? 'is' : 'isnt'
+      %= link_to 'Stop', ubic_service => { name => $fqn, command => 'stop' }, class => $status =~ /^running/i ? 'isnt' : 'is'
+      %= link_to 'Reload', ubic_service => { name => $fqn, command => 'reload' }, class => 'isnt'
+      %= link_to 'Restart', ubic_service => { name => $fqn, command => 'restart' }, class => 'isnt'
+    </span>
+    <span class="status" title="<%= $status || '' %>"><%= ucfirst $status || 'Unknown' %></span>
+  % }
+  </li>
+% }
+</ol>
+
+@@ ubic/index.html.ep
+% title 'Process overview';
+<h1>Ubic services overview</h1>
+%= link_to 'Refresh', '', class => 'refresh', title => 'Refresh ubic service list'
+<ul class="hosts">
+% for my $remote (@$remotes) {
+  <li>
+    <h3 class="host"><%= $remote->{hostname} || $remote->{tx}->req->url->host %></h3>
+  % if($remote->{error}) {
+    <div class="error"><%= $remote->{error} %></div>
+  % } else {
+    %= include 'ubic/services' => %$remote, pre => []
+  % }
+  </li>
+</ul>
+% }
