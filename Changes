@@ -2,3 +2,4 @@ Revision history for Mojolicious-Plugin-Ubic
 
 0.01
        * Add /services resource
+       * Add /service/#name/:action resource
