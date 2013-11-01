@@ -23,5 +23,7 @@ WriteMakefile(
   test => {
     TESTS => 't/*.t',
   },
-  #EXE_FILES => ['bin/my-app'],
+  EXE_FILES => [
+    'script/ubic-remote-admin',
+  ],
 );

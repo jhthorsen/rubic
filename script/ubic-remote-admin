@@ -1,0 +1,21 @@
+#!/usr/bin/env perl
+use Mojolicious::Lite;
+use Sys::Hostname ();
+use Mojo::Util;
+BEGIN { unshift @INC, "$FindBin::Bin/../lib" if -d "lib" }
+
+my $secret = Mojo::Util::md5_sum($$. rand 1_000_000);
+my $path = $ENV{UBIC_BASE_PATH} || "/$secret";
+
+app->log->info("Base path: $path");
+app->secret($secret); # not really required
+
+plugin Ubic => {
+  route => app->routes->route($path),
+  json => {
+    hostname => Sys::Hostname::hostname,
+    perl => $^X,
+  },
+};
+
+app->start;
