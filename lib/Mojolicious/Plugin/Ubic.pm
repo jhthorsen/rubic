@@ -49,14 +49,16 @@ Draw a tree using HTML.
 
 sub index {
   my($self, $c) = @_;
-  my $ua = $c->ua || Mojo::UserAgent->new;
+  my $ua = $c->ua;
 
   $c->stash(layout => $self->{layout})->render_later;
 
   Mojo::IOLoop->delay(
     sub {
       my($delay) = @_;
-      for my $url ($self->_remote_servers($c)) {
+      for($self->_remote_servers($c)) {
+        my $url = $_->clone;
+        push @{ $url->path }, 'services';
         warn "[UBIC] remote_url=$url\n" if DEBUG;
         $ua->get($url, $delay->begin);
       }
@@ -67,17 +69,51 @@ sub index {
 
       for my $tx (@tx) {
         if(my $json = $tx->res->json) {
-          $json->{tx} = $tx;
           push @remotes, $json;
         }
         else {
-          push @remotes, { tx => $tx, error => $tx->res->code || 'Did not respond' };
+          push @remotes, { error => $tx->res->code || 'Did not respond' };
         }
+
+        $remotes[-1]{tx} = $tx;
       }
 
       $c->render(template => 'ubic/index', remotes => \@remotes);
     },
   );
+}
+
+=head2 proxy
+
+This resource is used to proxy commands to other servers.
+
+=cut
+
+sub proxy {
+  my($self, $c) = @_;
+  my $to = $c->stash('to');
+  my $url;
+
+  for($self->_remote_servers($c)) {
+    next unless $_->host eq $to;
+    $url = $_->clone;
+    push @{ $url->path }, 'service', $c->stash('name'), $c->stash('command');
+    last;
+  }
+
+  unless($url) {
+    return $c->render(json => { error => 'Unknown host' }, status => 400);
+  }
+
+  warn "[UBIC] remote_url=$url\n" if DEBUG;
+
+  $c->render_later->ua->get($url => sub {
+    my($ua, $tx) = @_;
+    $c->render(
+      json => $tx->res->json || {},
+      status => $tx->res->code || 500,
+    );
+  });
 }
 
 =head2 services
@@ -186,6 +222,7 @@ Will register the L</ACTIONS> above.
 sub register {
   my($self, $app, $config) = @_;
   my $r = $config->{route} or die "'route' is required in config";
+  my $p = $config->{command_route} || $r;
 
   Ubic::Settings->service_dir($config->{service_dir}) if $config->{service_dir};
   Ubic::Settings->data_dir($config->{data_dir}) if $config->{data_dir};
@@ -199,7 +236,8 @@ sub register {
 
   $r->get('/')->name('ubic_index')->to(cb => sub { $self->index(@_) });
   $r->get('/services/*name', { name => '' })->name('ubic_services')->to(cb => sub { $self->services(@_) });
-  $r->get('/service/#name/:command', { command => 'status' })->name('ubic_service')->to(cb => sub { $self->service(@_) }); 
+  $p->any('/service/#name/:command', { command => 'status' })->name('ubic_service')->to(cb => sub { $self->service(@_) });
+  $p->any('/proxy/#to/#name/:command')->name('ubic_proxy')->to(cb => sub { $self->proxy(@_) });
 
   push @{ $app->renderer->classes }, __PACKAGE__;
 }
@@ -214,7 +252,6 @@ sub _remote_servers {
 
   if(!$self->{init_remote_servers}++) {
     push @$servers, $c->req->url->to_abs->clone;
-    push @{ $servers->[-1]->path }, 'services';
   }
 
   return @$servers;
@@ -292,14 +329,14 @@ __DATA__
   <li class="<%= $data->{services} ? 'multi-service' : 'service' %><%= $status =~ /^running/ ? ' running' : '' %>">
   % if($data->{services}) {
     <span class="multi-service"><%= $name %></span>
-    %= include 'ubic/services' => %$data, pre => [@$pre, $name]
+    %= include 'ubic/services' => %$data, pre => [@$pre, $name], remote => $remote
   % } else {
     <span class="name"><%= $name %></span>
     <span class="actions">
-      %= link_to 'Start', ubic_service => { name => $fqn, command => 'start' }, class => $status =~ /^running/i ? 'is' : 'isnt'
-      %= link_to 'Stop', ubic_service => { name => $fqn, command => 'stop' }, class => $status =~ /^running/i ? 'isnt' : 'is'
-      %= link_to 'Reload', ubic_service => { name => $fqn, command => 'reload' }, class => 'isnt'
-      %= link_to 'Restart', ubic_service => { name => $fqn, command => 'restart' }, class => 'isnt'
+      %= link_to 'Start', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'start' }, class => $status =~ /^running/i ? 'is' : 'isnt'
+      %= link_to 'Stop', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'stop' }, class => $status =~ /^running/i ? 'isnt' : 'is'
+      %= link_to 'Reload', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'reload' }, class => 'isnt'
+      %= link_to 'Restart', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'restart' }, class => 'isnt'
     </span>
     <span class="status" title="<%= $status || '' %>"><%= ucfirst $status || 'Unknown' %></span>
   % }
@@ -318,7 +355,7 @@ __DATA__
   % if($remote->{error}) {
     <div class="error"><%= $remote->{error} %></div>
   % } else {
-    %= include 'ubic/services' => %$remote, pre => []
+    %= include 'ubic/services' => %$remote, pre => [], remote => $remote
   % }
   </li>
 </ul>
