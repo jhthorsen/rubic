@@ -2,7 +2,7 @@ NAME
     Mojolicious::Plugin::Ubic - Remote ubic admin
 
 VERSION
-    0.03
+    0.04
 
 SYNOPSIS
       #!perl
@@ -24,6 +24,12 @@ DESCRIPTION
     This is Ubic::Ping::Service on steroids.
 
 ACTIONS
+  index
+    Draw a tree using HTML.
+
+  proxy
+    This resource is used to proxy commands to other servers.
+
   services
       GET /services
       GET /services/:service_name
