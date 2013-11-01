@@ -1,6 +1,6 @@
 Revision history for Mojolicious-Plugin-Ubic
 
-0.03
+0.03     Fri Nov  1 15:12:22 2013
        * Add support for MOJO_CONFIG for script/ubic-remote-admin
 
 0.02     Fri Nov  1 13:53:51 2013

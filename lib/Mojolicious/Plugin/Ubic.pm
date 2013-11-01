@@ -6,7 +6,7 @@ Mojolicious::Plugin::Ubic - Remote ubic admin
 
 =head1 VERSION
 
-0.02
+0.03
 
 =head1 SYNOPSIS
 
@@ -35,7 +35,7 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Sys::Hostname;
 use Ubic;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 ACTIONS
 
