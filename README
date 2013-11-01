@@ -1,0 +1,41 @@
+NAME
+    Mojolicious::Plugin::Ubic - Remote ubic admin
+
+SYNOPSIS
+      #!perl
+      use Mojolicious::Lite;
+
+      plugin Ubic => {
+        route => app->routes->route('/something/secure'),
+        json => {
+          some => 'default values',
+        },
+      };
+
+      app->start;
+
+ACTIONS
+  services
+      GET /services
+      GET /services/:service_name
+
+    Returns a json object with the services available:
+
+      {
+        "multi_service_name": {
+          "child_service_name": {
+            "status":"running"
+            ...
+          }
+          ...
+        }
+        ...
+      }
+
+METHODS
+  register
+    Will register the "ACTIONS" above.
+
+AUTHOR
+    Jan Henning Thorsen - "jan-henning.thorsen@telenor.com"
+
