@@ -234,6 +234,11 @@ sub register {
   $self->{remote_servers} = $config->{remote_servers} || [];
   $self->{valid_actions} = $config->{valid_actions} || [qw( start stop reload restart status )];
 
+  for my $server (@{ $self->{remote_servers} }) {
+    next if ref $server;
+    $server = Mojo::URL->new($server);
+  }
+
   $r->get('/')->name('ubic_index')->to(cb => sub { $self->index(@_) });
   $r->get('/services/*name', { name => '' })->name('ubic_services')->to(cb => sub { $self->services(@_) });
   $p->any('/service/#name/:command', { command => 'status' })->name('ubic_service')->to(cb => sub { $self->service(@_) });
