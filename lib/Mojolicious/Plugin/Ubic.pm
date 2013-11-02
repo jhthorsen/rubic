@@ -6,7 +6,7 @@ Mojolicious::Plugin::Ubic - Remote ubic admin
 
 =head1 VERSION
 
-0.04
+0.05
 
 =head1 SYNOPSIS
 
@@ -37,7 +37,7 @@ use Ubic;
 use Ubic::Settings;
 use constant DEBUG => $ENV{UBIC_DEBUG} || 0;
 
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 =head1 ACTIONS
 

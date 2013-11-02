@@ -2,7 +2,7 @@ NAME
     Mojolicious::Plugin::Ubic - Remote ubic admin
 
 VERSION
-    0.04
+    0.05
 
 SYNOPSIS
       #!perl
