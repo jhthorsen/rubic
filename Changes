@@ -2,6 +2,7 @@ Revision history for Mojolicious-Plugin-Ubic
 
 0.05
        * Fix remote_servers as plain string
+       * Change HTML from list to table
 
 0.04     Fri Nov  1 18:21:33 2013
        * Add HTML interface

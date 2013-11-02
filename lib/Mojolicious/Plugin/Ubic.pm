@@ -296,26 +296,21 @@ __DATA__
     body { background: #fefefe; color: #1c2e40; margin: 0; padding: 30px 20px; font-size: 14px; font-family: sans-serif; }
     a { color: #1c2e40; text-decoration: none; }
     a.refresh { display: block; position: absolute; top: 0; padding: 4px 8px; background: #eee; border: 1px solid #aaa; border-top: 0; }
+    .error { color: #900; }
     h1 { display: none; }
-    h3 { margin: 10px 0; }
-    ul, ol { margin: 0; padding: 0; }
-    ol { margin-left: 5px; }
-    li { list-style: none; margin: 1px 0; }
-    li span { padding: 3px; display: block; float: left; }
-    li.multi-service > span { margin-left: -5px; float: none; background: #eee; border: 1px solid #ccc; }
-    li.service { clear: left; overflow: hidden; }
-    li.service.running { background: #2ecc71; }
-    li.service span.name { width: 180px; }
-    li.service span.status { padding-left: 8px; border-left: 1px solid #fefefe; }
-    li span.actions { padding: 0; }
-    li span.actions a { display: block; float: left; border-left: 1px solid #fefefe; padding: 3px 8px; }
-    li a.is { color: #666; }
-    li.running a.is { color: #0eac51; }
+    h3 { margin: 10px 0 0 0; }
+    table { border-spacing: 1px; width: 100%; }
+    tr td { padding: 3px; }
+    tr td.action { padding: 0; width: 1px; }
+    tr td.action a { display: block; padding: 3px 8px; }
+    tr a.is { color: #666; }
+    tr.running { background: #2ecc71; }
+    tr.running a.is { color: #0eac51; }
   </style>
   %= javascript '/mojo/jquery/jquery.js'; # bad idea
   <script>
   $(document).ready(function() {
-    $('li.service .actions a').click(function(e) {
+    $('.action a').click(function(e) {
       $.get(this.href, function(data) { location.reload(); });
       return false;
     });
@@ -326,26 +321,22 @@ __DATA__
 %= content
 </html>
 @@ ubic/services.html.ep
-<ol>
 % for my $name (sort keys %$services) {
   % my $data = $services->{$name};
-  % my $fqn = join '.', @$pre, $name;
-  % my $status = $data->{status} || 'unknown';
-  <li class="<%= $data->{services} ? 'multi-service' : 'service' %><%= $status =~ /^running/ ? ' running' : '' %>">
   % if($data->{services}) {
-    <span class="multi-service"><%= $name %></span>
-    %= include 'ubic/services' => %$data, pre => [@$pre, $name], remote => $remote
+  %= include 'ubic/services' => %$data, pre => [@$pre, $name], remote => $remote
   % } else {
-    <span class="name"><%= $name %></span>
-    <span class="actions">
-      %= link_to 'Start', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'start' }, class => $status =~ /^running/i ? 'is' : 'isnt'
-      %= link_to 'Stop', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'stop' }, class => $status =~ /^running/i ? 'isnt' : 'is'
-      %= link_to 'Reload', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'reload' }, class => 'isnt'
-      %= link_to 'Restart', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'restart' }, class => 'isnt'
-    </span>
-    <span class="status" title="<%= $status || '' %>"><%= ucfirst $status || 'Unknown' %></span>
+    % my $fqn = join '.', @$pre, $name;
+    % my $status = $data->{status} || 'unknown';
+  <tr class="service<%= $status =~ /^running/ ? ' running' : '' %>">
+    <td class="name"><%= $fqn %></td>
+    <td class="status" title="<%= $status || '' %>"><%= ucfirst $status || 'Unknown' %></td>
+    <td class="action"><%= link_to 'Start', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'start' }, class => $status =~ /^running/i ? 'is' : 'isnt' %></td>
+    <td class="action"><%= link_to 'Stop', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'stop' }, class => $status =~ /^running/i ? 'isnt' : 'is' %></td>
+    <td class="action"><%= link_to 'Reload', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'reload' }, class => 'isnt' %></td>
+    <td class="action"><%= link_to 'Restart', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'restart' }, class => 'isnt' %></td>
   % }
-  </li>
+  </tr>
 % }
 </ol>
 
@@ -353,15 +344,13 @@ __DATA__
 % title 'Process overview';
 <h1>Ubic services overview</h1>
 %= link_to 'Refresh', '', class => 'refresh', title => 'Refresh ubic service list'
-<ul class="hosts">
 % for my $remote (@$remotes) {
-  <li>
-    <h3 class="host"><%= $remote->{hostname} || $remote->{tx}->req->url->host %></h3>
+<h3 class="host"><%= $remote->{hostname} || $remote->{tx}->req->url->host %></h3>
   % if($remote->{error}) {
-    <div class="error"><%= $remote->{error} %></div>
+  <div class="error"><%= $remote->{error} %></div>
   % } else {
+  <table>
     %= include 'ubic/services' => %$remote, pre => [], remote => $remote
+  </table>
   % }
-  </li>
-</ul>
 % }
