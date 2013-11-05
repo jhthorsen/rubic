@@ -32,6 +32,11 @@ my $t = Test::Mojo->new;
     ->json_is('/services/foo/services/test123/status', 'running')
     ->json_is('/foo', 'bar')
     ;
+
+  $t->get_ok('/dummy/services?flat=1')
+    ->json_is('/services/foo.test123/status', 'running')
+    ->json_is('/foo', 'bar')
+    ;
 }
 
 done_testing;

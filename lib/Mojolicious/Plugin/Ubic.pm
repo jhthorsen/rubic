@@ -43,7 +43,7 @@ our $VERSION = '0.05';
 
 =head2 index
 
-Draw a tree using HTML.
+Draw a table of services using HTML.
 
 =cut
 
@@ -58,6 +58,7 @@ sub index {
       my($delay) = @_;
       for($self->_remote_servers($c)) {
         my $url = $_->clone;
+        $url->query->param(flat => 1);
         push @{ $url->path }, 'services';
         warn "[UBIC] remote_url=$url\n" if DEBUG;
         $ua->get($url, $delay->begin);
@@ -127,17 +128,25 @@ Returns a json object with the services available and statuses:
     "multi_service_name": {
       "child_service_name": {
         "status":"running"
-        ...
       }
-      ...
     }
-    ...
+  }
+
+Is is also possible to ask for "?flat=1" which will result in this response:
+
+  {
+    "services": {
+      "multi_service_name.child_service_name": {
+        "status":"running"
+      }
+    }
   }
 
 =cut
 
 sub services {
   my($self, $c) = @_;
+  my $flat = $c->param('flat') ? $self->_json : undef;
   my $json = $self->_json;
   my $service;
 
@@ -154,10 +163,14 @@ sub services {
 
   $self->_traverse($service, $json, sub {
     my($service, $data) = @_;
-    $data->{status} = $service->status unless $service->isa('Ubic::Multiservice');
+
+    unless($service->isa('Ubic::Multiservice')) {
+      $data->{status} = $service->status;
+      $flat->{services}{$service->full_name}{status} = $data->{status} if $flat;
+    }
   });
 
-  $c->render(json => $json);
+  $c->render(json => $flat ? $flat : $json);
 }
 
 =head2 service
@@ -323,11 +336,8 @@ __DATA__
 @@ ubic/services.html.ep
 % for my $name (sort keys %$services) {
   % my $data = $services->{$name};
-  % if($data->{services}) {
-  %= include 'ubic/services' => %$data, pre => [@$pre, $name], remote => $remote
-  % } else {
-    % my $fqn = join '.', @$pre, $name;
-    % my $status = $data->{status} || 'unknown';
+  % my $fqn = join '.', @$pre, $name;
+  % my $status = $data->{status} || 'unknown';
   <tr class="service<%= $status =~ /^running/ ? ' running' : '' %>">
     <td class="name"><%= $fqn %></td>
     <td class="status" title="<%= $status || '' %>"><%= ucfirst $status || 'Unknown' %></td>
@@ -335,7 +345,6 @@ __DATA__
     <td class="action"><%= link_to 'Stop', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'stop' }, class => $status =~ /^running/i ? 'isnt' : 'is' %></td>
     <td class="action"><%= link_to 'Reload', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'reload' }, class => 'isnt' %></td>
     <td class="action"><%= link_to 'Restart', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'restart' }, class => 'isnt' %></td>
-  % }
   </tr>
 % }
 </ol>

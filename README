@@ -25,7 +25,7 @@ DESCRIPTION
 
 ACTIONS
   index
-    Draw a tree using HTML.
+    Draw a table of services using HTML.
 
   proxy
     This resource is used to proxy commands to other servers.
@@ -40,11 +40,19 @@ ACTIONS
         "multi_service_name": {
           "child_service_name": {
             "status":"running"
-            ...
           }
-          ...
         }
-        ...
+      }
+
+    Is is also possible to ask for "?flat=1" which will result in this
+    response:
+
+      {
+        "services": {
+          "multi_service_name.child_service_name": {
+            "status":"running"
+          }
+        }
       }
 
   service
