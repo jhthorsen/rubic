@@ -330,8 +330,9 @@ __DATA__
   });
   </script>
 </head>
-<html>
-%= content
+<body>
+  %= content
+</body>
 </html>
 @@ ubic/services.html.ep
 % for my $name (sort keys %$services) {
@@ -347,19 +348,23 @@ __DATA__
     <td class="action"><%= link_to 'Restart', ubic_proxy => { to => $remote->{tx}->req->url->host, name => $fqn, command => 'restart' }, class => 'isnt' %></td>
   </tr>
 % }
-</ol>
 
 @@ ubic/index.html.ep
 % title 'Process overview';
 <h1>Ubic services overview</h1>
 %= link_to 'Refresh', '', class => 'refresh', title => 'Refresh ubic service list'
+<table>
 % for my $remote (@$remotes) {
-<h3 class="host"><%= $remote->{hostname} || $remote->{tx}->req->url->host %></h3>
-  % if($remote->{error}) {
-  <div class="error"><%= $remote->{error} %></div>
-  % } else {
-  <table>
+  <tr>
+    <td colspan="6">
+      <h3 class="host"><%= $remote->{hostname} || $remote->{tx}->req->url->host %></h3>
+    % if($remote->{error}) {
+      <div class="error"><%= $remote->{error} %></div>
+    % }
+    </td>
+  </tr>
+  % if(!$remote->{error}) {
     %= include 'ubic/services' => %$remote, pre => [], remote => $remote
-  </table>
   % }
 % }
+</table>
