@@ -1,6 +1,6 @@
 Revision history for Mojolicious-Plugin-Ubic
 
-0.06
+0.06     Tue Nov  5 19:19:28 2013
        * Add support for /services?flat=1 response
 
 0.05     Sat Nov  2 11:39:22 2013
