@@ -1,76 +1,62 @@
 NAME
-    Mojolicious::Plugin::Ubic - Remote ubic admin
+    Rubic - Remote admin tool for ubic
 
 VERSION
-    0.06
-
-SYNOPSIS
-      #!perl
-      use Mojolicious::Lite;
-
-      plugin Ubic => {
-        route => app->routes->route('/something/secure'),
-        json => {
-          some => 'default values',
-        },
-      };
-
-      app->start;
+    0.07
 
 DESCRIPTION
-    This Mojolicious plugin allow you to query status of the running Ubic
-    services and also start/stop/restart/reload/... them.
+    The distribution contains a web server "rubic" which allow you to run
+    Ubic commands using a REST API. It also has a HTML based web interface
+    or easy administration for humans.
 
     This is Ubic::Ping::Service on steroids.
 
-ACTIONS
-  index
-    Draw a table of services using HTML.
+    See also Mojolicious::Plugin::Ubic.
 
-  proxy
-    This resource is used to proxy commands to other servers.
+SYNOPSIS
+      $ rubic daemon --listen http://*:5000
 
-  services
-      GET /services
-      GET /services/:service_name
+    Look for "Base path" in the output. Example:
 
-    Returns a json object with the services available and statuses:
+      [Sun Nov 17 13:45:06 2013] [info] Base path: /e3927cec591094d8294dfff30f1110f3
 
-      {
-        "multi_service_name": {
-          "child_service_name": {
-            "status":"running"
-          }
-        }
-      }
+    Point your browser at
+    "http://localhost:5000/e3927cec591094d8294dfff30f1110f3"
 
-    Is is also possible to ask for "?flat=1" which will result in this
-    response:
+  Environment variables
+    *   UBIC_BASE_PATH
 
-      {
-        "services": {
-          "multi_service_name.child_service_name": {
-            "status":"running"
-          }
-        }
-      }
+        Set your own "Base path" instead of using the auto-generated. This
+        should be something very long to make it "impossible" to brute
+        force.
 
-  service
-      GET /:service_name
-      GET /:service_name/status
-      POST /:service_name/start
-      POST /:service_name/reload
-      POST /:service_name/restart
-      POST /:service_name/stop
+    *   MOJO_CONFIG
 
-    Used to control a given service. The actions act like <ubic> from the
-    command line. The return value contain "status". Example:
+        Possible to configure the application using a config file in Perl
+        format.
 
-      {"status":"running"}
+FAQ
+    What is ubic?
+        See Ubic::Manual::FAQ.
 
-METHODS
-  register
-    Will register the "ACTIONS" above.
+    Why this weird "Base path"?
+        Just to make it a bit safer, without requiring user/password. It is
+        possible to make it safer by mouting the plugin in your own
+        Mojolicious application, where you can add any sort of
+        authentication you want.
+
+    What about SSL support?
+        It should be supported out of the box if you install
+        IO::Socket::SSL:
+
+          $ rubic daemon --listen https://*:5000
+
+        See "listen" in Mojo::Server::Daemon for more inforation about the
+        "--listen" argument.
+
+COPYRIGHT
+    This is free software; you can redistribute it and/or modify it under
+    the same terms as the Perl 5 programming language system itself.
 
 AUTHOR
     Jan Henning Thorsen - "jhthorsen@cpan.org"

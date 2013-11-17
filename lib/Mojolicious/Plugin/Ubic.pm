@@ -4,10 +4,6 @@ package Mojolicious::Plugin::Ubic;
 
 Mojolicious::Plugin::Ubic - Remote ubic admin
 
-=head1 VERSION
-
-0.07
-
 =head1 SYNOPSIS
 
   #!perl
@@ -28,7 +24,7 @@ Mojolicious::Plugin::Ubic - Remote ubic admin
 
   app->start;
 
-See L</register> for argument description.
+See L</register> for config description.
 
 =head1 DESCRIPTION
 
@@ -44,8 +40,6 @@ use Sys::Hostname;
 use Ubic;
 use Ubic::Settings;
 use constant DEBUG => $ENV{UBIC_DEBUG} || 0;
-
-our $VERSION = '0.07';
 
 =head1 ACTIONS
 
@@ -382,6 +376,11 @@ sub _traverse {
     $cb->($service, $json->{$name} ||= {});
   }
 }
+
+=head1 COPYRIGHT
+
+This is free software; you can redistribute it and/or modify it under the
+same terms as the Perl 5 programming language system itself.
 
 =head1 AUTHOR
 

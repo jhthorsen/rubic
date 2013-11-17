@@ -9,4 +9,4 @@
 ^Mojolicious-Plugin-Ubic
 ^MYMETA.*
 /t/ubic/.*
-/t/ubic-remote-admin.log
+/t/rubic.log
