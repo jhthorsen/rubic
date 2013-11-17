@@ -6,7 +6,7 @@ Rubic - Remote admin tool for ubic
 
 =head1 VERSION
 
-0.08
+0.0801
 
 =head1 DESCRIPTION
 
@@ -72,7 +72,7 @@ argument.
 
 use strict;
 
-our $VERSION = '0.08';
+our $VERSION = '0.0801';
 
 =head1 COPYRIGHT
 

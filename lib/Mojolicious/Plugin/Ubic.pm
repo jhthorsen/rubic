@@ -306,7 +306,7 @@ A L<Mojolicious::Route> object where the L</ACTIONS> should be mounted.
 A L<Mojolicious::Route> object where L</command> should be mounted. Default
 is same as L</route>.
 
-=item valid_actions
+=item * valid_actions
 
 A list of valid actions for L</command> to run. Default is:
 

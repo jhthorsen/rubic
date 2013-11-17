@@ -1,5 +1,8 @@
 Revision history for Rubic
 
+0.0801   Sun Nov 17 15:35:56 2013
+       * Fix invalid POD
+
 0.08     Sun Nov 17 14:06:01 2013
        * Rename to rubic
 
