@@ -41,6 +41,55 @@ our $VERSION = '0.06';
 
 =head1 ACTIONS
 
+=head2 command
+
+  POST /:service_name/start
+  POST /:service_name/reload
+  POST /:service_name/restart
+  POST /:service_name/stop
+
+Used to control a given service. The actions act like <ubic> from the command
+line. The return value contain "status". Example:
+
+  {"status":"running"}
+
+=cut
+
+sub command {
+  my($self, $c) = @_;
+  my $command = $c->stash('command');
+  my $name = $c->stash('name');
+  my $json = $self->_json;
+  my $valid = grep { $command eq $_ } @{ $self->{valid_actions} };
+
+  if(!$valid) {
+    $json->{error} = 'Invalid command';
+    return $c->render(json => $json, status => 400);
+  }
+  if(!Ubic->has_service($name)) {
+    $json->{error} = 'Not found';
+    return $c->render(json => $json, status => 404);
+  }
+
+  $service = Ubic->service($name);
+
+  if($service->isa('Ubic::Multiservice')) {
+    $json->{error} = 'Cannot run actions on Ubic::Multiservice';
+    return $c->render(json => $json, status => 400);
+  }
+
+  eval {
+    $service->$command;
+    $json->{status} = $service->status;
+    1;
+  } or do {
+    $json->{error} = $@;
+  };
+
+  $c->render(json => $json, status => $json->{error} ? 500 : 200);
+}
+
+
 =head2 index
 
 Draw a table of services using HTML.
@@ -148,6 +197,7 @@ sub services {
   my($self, $c) = @_;
   my $flat = $c->param('flat') ? $self->_json : undef;
   my $json = $self->_json;
+  my $status_method = $c->param('cached') ? 'cached_status': 'status';
   my $service;
 
   if(my $name = $c->stash('name')) {
@@ -165,7 +215,7 @@ sub services {
     my($service, $data) = @_;
 
     unless($service->isa('Ubic::Multiservice')) {
-      $data->{status} = $service->status;
+      $data->{status} = Ubic->$status_method($service->full_name);
       $flat->{services}{$service->full_name}{status} = $data->{status} if $flat;
     }
   });
@@ -173,49 +223,30 @@ sub services {
   $c->render(json => $flat ? $flat : $json);
 }
 
-=head2 service
+=head2 status
 
   GET /:service_name
   GET /:service_name/status
-  POST /:service_name/start
-  POST /:service_name/reload
-  POST /:service_name/restart
-  POST /:service_name/stop
 
-Used to control a given service. The actions act like <ubic> from the command
-line. The return value contain "status". Example:
+Used to get the status of a given service. Example JSON response:
 
   {"status":"running"}
 
 =cut
 
-sub service {
+sub status {
   my($self, $c) = @_;
-  my $command = $c->stash('command');
   my $name = $c->stash('name');
-  my $valid = grep { $command eq $_ } @{ $self->{valid_actions} };
   my $json = $self->_json;
-  my $service;
+  my $status_method = $c->param('cached') ? 'cached_status': 'status';
 
-  if(!$valid) {
-    $json->{error} = 'Invalid command';
-    return $c->render(json => $json, status => 400);
-  }
   if(!Ubic->has_service($name)) {
     $json->{error} = 'Not found';
     return $c->render(json => $json, status => 404);
   }
 
-  $service = Ubic->service($name);
-
-  if($service->isa('Ubic::Multiservice')) {
-    $json->{error} = 'Cannot run actions on Ubic::Multiservice';
-    return $c->render(json => $json, status => 400);
-  }
-
   eval {
-    $service->$command;
-    $json->{status} = $service->status;
+    $json->{status} = Ubic->$status_method($name);
     1;
   } or do {
     $json->{error} = $@;
@@ -254,7 +285,8 @@ sub register {
 
   $r->get('/')->name('ubic_index')->to(cb => sub { $self->index(@_) });
   $r->get('/services/*name', { name => '' })->name('ubic_services')->to(cb => sub { $self->services(@_) });
-  $p->any('/service/#name/:command', { command => 'status' })->name('ubic_service')->to(cb => sub { $self->service(@_) });
+  $p->any('/service/#name/:command')->name('ubic_service')->to(cb => sub { $self->command(@_) });
+  $p->get('/service/#name/:command', { command => 'status' }, [ command => 'status' ])->to(cb => sub { $self->status(@_) });
   $p->any('/proxy/#to/#name/:command')->name('ubic_proxy')->to(cb => sub { $self->proxy(@_) });
 
   push @{ $app->renderer->classes }, __PACKAGE__;

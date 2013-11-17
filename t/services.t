@@ -6,7 +6,9 @@ use File::Path qw( remove_tree make_path );
 {
   use Mojolicious::Lite;
 
-  $ENV{$_} = 't/ubic' for qw( UBIC_SERVICE_DIR UBIC_DIR UBIC_DEFAULT_USER );
+  $ENV{UBIC_DEFAULT_USER} = getpwuid $<;
+  $ENV{UBIC_DIR} = 't/ubic';
+  $ENV{UBIC_SERVICE_DIR} = 't/ubic/service';
 
   plugin Ubic => {
     route => app->routes->route('/dummy'),
@@ -23,8 +25,10 @@ my $t = Test::Mojo->new;
 }
 
 {
-  make_path 't/ubic/foo';
-  open my $SERVICE, '>', 't/ubic/foo/test123' or die $!;
+  make_path 't/ubic/service/foo';
+  make_path 't/ubic/lock';
+  make_path 't/ubic/tmp';
+  open my $SERVICE, '>', 't/ubic/service/foo/test123' or die $!;
   print $SERVICE "use parent 'Ubic::Service'; sub status { 'running' } bless {}\n";
   close $SERVICE;
 
@@ -39,4 +43,5 @@ my $t = Test::Mojo->new;
     ;
 }
 
+remove_tree 't/ubic';
 done_testing;
