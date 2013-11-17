@@ -26,9 +26,16 @@ my $t = Test::Mojo->new;
 {
   make_path 't/ubic/service/foo';
   make_path 't/ubic/lock';
+  make_path 't/ubic/status';
   make_path 't/ubic/tmp';
   open my $SERVICE, '>', 't/ubic/service/foo/test123' or die $!;
-  print $SERVICE "use parent 'Ubic::Service'; sub status { 'running' } bless {}\n";
+  print $SERVICE <<'  SERVICE';
+  use parent 'Ubic::Service';
+  sub stop { return 'stopped' }
+  sub start { return 'started' }
+  sub status { 'running' }
+  bless {};
+  SERVICE
   close $SERVICE;
 
   $t->get_ok('/dummy/service/foo.test123/yikes')
@@ -43,6 +50,14 @@ my $t = Test::Mojo->new;
     ;
 
   $t->get_ok('/dummy/service/foo.test123/status')
+    ->status_is(200)
+    ->json_is('/status', 'running')
+    ->json_is('/error', undef)
+    ;
+}
+
+{
+  $t->get_ok('/dummy/service/foo.test123/restart')
     ->status_is(200)
     ->json_is('/status', 'running')
     ->json_is('/error', undef)

@@ -71,16 +71,14 @@ sub command {
     return $c->render(json => $json, status => 404);
   }
 
-  $service = Ubic->service($name);
-
-  if($service->isa('Ubic::Multiservice')) {
-    $json->{error} = 'Cannot run actions on Ubic::Multiservice';
+  if(Ubic->service($name)->isa('Ubic::Multiservice')) {
+    $json->{error} = 'Cannot run actions on multiservice';
     return $c->render(json => $json, status => 400);
   }
 
   eval {
-    $service->$command;
-    $json->{status} = $service->status;
+    Ubic->$command($name);
+    $json->{status} = Ubic->status($name);
     1;
   } or do {
     $json->{error} = $@;
@@ -88,7 +86,6 @@ sub command {
 
   $c->render(json => $json, status => $json->{error} ? 500 : 200);
 }
-
 
 =head2 index
 
