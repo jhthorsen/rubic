@@ -6,7 +6,7 @@ Mojolicious::Plugin::Ubic - Remote ubic admin
 
 =head1 VERSION
 
-0.06
+0.07
 
 =head1 SYNOPSIS
 
@@ -14,13 +14,21 @@ Mojolicious::Plugin::Ubic - Remote ubic admin
   use Mojolicious::Lite;
 
   plugin Ubic => {
+    data_dir => '/path/to/ubic/data',
+    default_user => 'ubicadmin',
+    layout => 'my_layout',
+    remote_servers => [...],
     route => app->routes->route('/something/secure'),
+    service_dir => '/path/to/ubic/service',
+    valid_actions => [...],
     json => {
       some => 'default values',
     },
   };
 
   app->start;
+
+See L</register> for argument description.
 
 =head1 DESCRIPTION
 
@@ -37,7 +45,7 @@ use Ubic;
 use Ubic::Settings;
 use constant DEBUG => $ENV{UBIC_DEBUG} || 0;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 =head1 ACTIONS
 
@@ -256,7 +264,61 @@ sub status {
 
 =head2 register
 
-Will register the L</ACTIONS> above.
+  $app->plugin(Ubic => \%config);
+
+Will register the L</ACTIONS> above. Possible C<%config>:
+
+=over 4
+
+=item * data_dir
+
+Default to L<Ubic::Settings/data_dir>.
+
+=item * default_user
+
+Default to L<Ubic::Settings/default_user>.
+
+=item * service_dir
+
+Default to L<Ubic::Settings/service_dir>.
+
+=item * json
+
+A datastructure (hash-ref) which is included in all the responses. Could
+contain data such as uptime, hostname, ...
+
+=item * layout
+
+Used to set the layout which the L<HTML|/index> will rendered inside.
+Default is "ubic" which is defined in this package.
+
+=item * remote_servers
+
+A list of URL which point to other web servers compatible with the API
+defined in this package. This allow L</proxy> to run commands on all
+servers, including the current. Example:
+
+  [
+    "http://10.1.2.3/secret/ubic/path",
+    "http://10.1.2.4/other/secret/path",
+  ]
+
+=item * route
+
+A L<Mojolicious::Route> object where the L</ACTIONS> should be mounted.
+
+=item * command_route
+
+A L<Mojolicious::Route> object where L</command> should be mounted. Default
+is same as L</route>.
+
+=item valid_actions
+
+A list of valid actions for L</command> to run. Default is:
+
+  [ "start", "stop", "reload", "restart" ]
+
+=back
 
 =cut
 
@@ -265,15 +327,15 @@ sub register {
   my $r = $config->{route} or die "'route' is required in config";
   my $p = $config->{command_route} || $r;
 
-  Ubic::Settings->service_dir($config->{service_dir}) if $config->{service_dir};
   Ubic::Settings->data_dir($config->{data_dir}) if $config->{data_dir};
   Ubic::Settings->default_user($config->{default_user}) if $config->{default_user};
+  Ubic::Settings->service_dir($config->{service_dir}) if $config->{service_dir};
   Ubic::Settings->check_settings;
 
   $self->{json} = $config->{json} || {};
   $self->{layout} = $config->{layout} || 'ubic';
   $self->{remote_servers} = $config->{remote_servers} || [];
-  $self->{valid_actions} = $config->{valid_actions} || [qw( start stop reload restart status )];
+  $self->{valid_actions} = $config->{valid_actions} || [qw( start stop reload restart )];
 
   for my $server (@{ $self->{remote_servers} }) {
     next if ref $server;
@@ -282,8 +344,8 @@ sub register {
 
   $r->get('/')->name('ubic_index')->to(cb => sub { $self->index(@_) });
   $r->get('/services/*name', { name => '' })->name('ubic_services')->to(cb => sub { $self->services(@_) });
+  $r->get('/service/#name/:command', { command => 'status' }, [ command => 'status' ])->to(cb => sub { $self->status(@_) });
   $p->any('/service/#name/:command')->name('ubic_service')->to(cb => sub { $self->command(@_) });
-  $p->get('/service/#name/:command', { command => 'status' }, [ command => 'status' ])->to(cb => sub { $self->status(@_) });
   $p->any('/proxy/#to/#name/:command')->name('ubic_proxy')->to(cb => sub { $self->proxy(@_) });
 
   push @{ $app->renderer->classes }, __PACKAGE__;
