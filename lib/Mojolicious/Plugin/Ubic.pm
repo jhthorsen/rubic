@@ -79,11 +79,10 @@ sub command {
   }
 
   eval {
-    Ubic->$command($name);
-    $json->{status} = Ubic->status($name);
+    $json->{status} = '' .Ubic->$command($name);
     1;
   } or do {
-    $json->{error} = $@;
+    $json->{error} = $@ || 'Unknown error';
   };
 
   $c->render(json => $json, status => $json->{error} ? 500 : 200);

@@ -59,7 +59,7 @@ my $t = Test::Mojo->new;
 {
   $t->get_ok('/dummy/service/foo.test123/restart')
     ->status_is(200)
-    ->json_is('/status', 'running')
+    ->json_is('/status', 'restarted')
     ->json_is('/error', undef)
     ;
 }
