@@ -1,6 +1,6 @@
 Revision history for Rubic
 
-0.0803
+0.0803   Mon Nov 18 16:54:45 2013
        * Fix need to return command result and not status
 
 0.0802   Mon Nov 18 11:10:49 2013
