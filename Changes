@@ -1,5 +1,8 @@
 Revision history for Rubic
 
+0.0802   Mon Nov 18 11:10:49 2013
+       * Fix API documentation
+
 0.0801   Sun Nov 17 15:35:56 2013
        * Fix invalid POD
 

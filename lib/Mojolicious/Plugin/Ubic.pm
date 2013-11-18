@@ -45,10 +45,10 @@ use constant DEBUG => $ENV{UBIC_DEBUG} || 0;
 
 =head2 command
 
-  POST /:service_name/start
-  POST /:service_name/reload
-  POST /:service_name/restart
-  POST /:service_name/stop
+  POST /service/:service_name/start
+  POST /service/:service_name/reload
+  POST /service/:service_name/restart
+  POST /service/:service_name/stop
 
 Used to control a given service. The actions act like <ubic> from the command
 line. The return value contain "status". Example:
@@ -90,6 +90,8 @@ sub command {
 }
 
 =head2 index
+
+  GET /
 
 Draw a table of services using HTML.
 
@@ -133,6 +135,8 @@ sub index {
 }
 
 =head2 proxy
+
+  GET /proxy/#to/#service_name/:command
 
 This resource is used to proxy commands to other servers.
 
@@ -224,8 +228,8 @@ sub services {
 
 =head2 status
 
-  GET /:service_name
-  GET /:service_name/status
+  GET /service/:service_name
+  GET /service/:service_name/status
 
 Used to get the status of a given service. Example JSON response:
 

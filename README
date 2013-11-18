@@ -2,7 +2,7 @@ NAME
     Rubic - Remote admin tool for ubic
 
 VERSION
-    0.0801
+    0.0802
 
 DESCRIPTION
     The distribution contains a web server "rubic" which allow you to run
