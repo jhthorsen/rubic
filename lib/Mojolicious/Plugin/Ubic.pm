@@ -73,11 +73,6 @@ sub command {
     return $c->render(json => $json, status => 404);
   }
 
-  if(Ubic->service($name)->isa('Ubic::Multiservice')) {
-    $json->{error} = 'Cannot run actions on multiservice';
-    return $c->render(json => $json, status => 400);
-  }
-
   eval {
     $json->{status} = '' .Ubic->$command($name);
     1;
