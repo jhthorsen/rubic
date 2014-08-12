@@ -25,6 +25,6 @@ if(my $log = app->config->{log}) {
 }
 
 app->log->info("Base path: $path");
-app->secret($secret); # not really required
+app->secrets([$secret]); # not really required
 
 app->start;
