@@ -1,5 +1,8 @@
 Revision history for Rubic
 
+0.0804   Tue Aug 12 16:19:24 2014
+       * Compatible with Mojolicious 5
+
 0.0803   Mon Nov 18 16:54:45 2013
        * Fix need to return command result and not status
 
