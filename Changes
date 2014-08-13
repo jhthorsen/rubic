@@ -1,5 +1,8 @@
 Revision history for Rubic
 
+0.0805   Wed Aug 13 16:42:55 2014
+       * Fix dependencies
+
 0.0804   Tue Aug 12 16:19:24 2014
        * Compatible with Mojolicious 5
 

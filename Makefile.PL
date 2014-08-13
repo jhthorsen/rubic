@@ -19,7 +19,8 @@ WriteMakefile(
 }
 ,
   PREREQ_PM => {
-  'perl' => 'v5.10.0'
+  'Mojolicious' => '5.0',
+  'Ubic' => '1.50'
 }
 ,
   test => { TESTS => 't/*.t' },
